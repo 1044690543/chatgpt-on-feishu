@@ -50,69 +50,75 @@ class ChatGPTBot(Bot, OpenAIImage):
             remove_keys = ["temperature", "top_p", "frequency_penalty", "presence_penalty"]
             for key in remove_keys:
                 self.args.pop(key, None)  # 如果键不存在，使用 None 来避免抛出错误
-
+    
     def reply(self, query, context=None):
-        # acquire reply content
-        if context.type == ContextType.TEXT:
-            logger.info("[CHATGPT] query={}".format(query))
+        from search_sql import get_result
+        logger.info("[CHATGPT] query={}".format(query))
+        result = get_result(query)
+        return result
 
-            session_id = context["session_id"]
-            reply = None
-            clear_memory_commands = conf().get("clear_memory_commands", ["#清除记忆"])
-            if query in clear_memory_commands:
-                self.sessions.clear_session(session_id)
-                reply = Reply(ReplyType.INFO, "记忆已清除")
-            elif query == "#清除所有":
-                self.sessions.clear_all_session()
-                reply = Reply(ReplyType.INFO, "所有人记忆已清除")
-            elif query == "#更新配置":
-                load_config()
-                reply = Reply(ReplyType.INFO, "配置已更新")
-            if reply:
-                return reply
-            session = self.sessions.session_query(query, session_id)
-            logger.debug("[CHATGPT] session query={}".format(session.messages))
+    # def reply(self, query, context=None):
+    #     # acquire reply content
+    #     if context.type == ContextType.TEXT:
+    #         logger.info("[CHATGPT] query={}".format(query))
 
-            api_key = context.get("openai_api_key")
-            model = context.get("gpt_model")
-            new_args = None
-            if model:
-                new_args = self.args.copy()
-                new_args["model"] = model
-            # if context.get('stream'):
-            #     # reply in stream
-            #     return self.reply_text_stream(query, new_query, session_id)
+    #         session_id = context["session_id"]
+    #         reply = None
+    #         clear_memory_commands = conf().get("clear_memory_commands", ["#清除记忆"])
+    #         if query in clear_memory_commands:
+    #             self.sessions.clear_session(session_id)
+    #             reply = Reply(ReplyType.INFO, "记忆已清除")
+    #         elif query == "#清除所有":
+    #             self.sessions.clear_all_session()
+    #             reply = Reply(ReplyType.INFO, "所有人记忆已清除")
+    #         elif query == "#更新配置":
+    #             load_config()
+    #             reply = Reply(ReplyType.INFO, "配置已更新")
+    #         if reply:
+    #             return reply
+    #         session = self.sessions.session_query(query, session_id)
+    #         logger.debug("[CHATGPT] session query={}".format(session.messages))
 
-            reply_content = self.reply_text(session, api_key, args=new_args)
-            logger.debug(
-                "[CHATGPT] new_query={}, session_id={}, reply_cont={}, completion_tokens={}".format(
-                    session.messages,
-                    session_id,
-                    reply_content["content"],
-                    reply_content["completion_tokens"],
-                )
-            )
-            if reply_content["completion_tokens"] == 0 and len(reply_content["content"]) > 0:
-                reply = Reply(ReplyType.ERROR, reply_content["content"])
-            elif reply_content["completion_tokens"] > 0:
-                self.sessions.session_reply(reply_content["content"], session_id, reply_content["total_tokens"])
-                reply = Reply(ReplyType.TEXT, reply_content["content"])
-            else:
-                reply = Reply(ReplyType.ERROR, reply_content["content"])
-                logger.debug("[CHATGPT] reply {} used 0 tokens.".format(reply_content))
-            return reply
+    #         api_key = context.get("openai_api_key")
+    #         model = context.get("gpt_model")
+    #         new_args = None
+    #         if model:
+    #             new_args = self.args.copy()
+    #             new_args["model"] = model
+    #         # if context.get('stream'):
+    #         #     # reply in stream
+    #         #     return self.reply_text_stream(query, new_query, session_id)
 
-        elif context.type == ContextType.IMAGE_CREATE:
-            ok, retstring = self.create_img(query, 0)
-            reply = None
-            if ok:
-                reply = Reply(ReplyType.IMAGE_URL, retstring)
-            else:
-                reply = Reply(ReplyType.ERROR, retstring)
-            return reply
-        else:
-            reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
-            return reply
+    #         reply_content = self.reply_text(session, api_key, args=new_args)
+    #         logger.debug(
+    #             "[CHATGPT] new_query={}, session_id={}, reply_cont={}, completion_tokens={}".format(
+    #                 session.messages,
+    #                 session_id,
+    #                 reply_content["content"],
+    #                 reply_content["completion_tokens"],
+    #             )
+    #         )
+    #         if reply_content["completion_tokens"] == 0 and len(reply_content["content"]) > 0:
+    #             reply = Reply(ReplyType.ERROR, reply_content["content"])
+    #         elif reply_content["completion_tokens"] > 0:
+    #             self.sessions.session_reply(reply_content["content"], session_id, reply_content["total_tokens"])
+    #             reply = Reply(ReplyType.TEXT, reply_content["content"])
+    #         else:
+    #             reply = Reply(ReplyType.ERROR, reply_content["content"])
+    #             logger.debug("[CHATGPT] reply {} used 0 tokens.".format(reply_content))
+    #         return reply
+
+    #     elif context.type == ContextType.IMAGE_CREATE:
+    #         ok, retstring = self.create_img(query, 0)
+    #         reply = None
+    #         if ok:
+    #             reply = Reply(ReplyType.IMAGE_URL, retstring)
+    #         else:
+    #             reply = Reply(ReplyType.ERROR, retstring)
+    #         return reply
+    #     else:
+    #         reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
+    #         return reply
 
     def reply_text(self, session: ChatGPTSession, api_key=None, args=None, retry_count=0) -> dict:
         """

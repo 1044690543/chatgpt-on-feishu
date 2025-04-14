@@ -183,6 +183,11 @@ available_setting = {
     "Minimax_group_id": "",
     "Minimax_base_url": "",
     "web_port": 9899,
+    "sql_user": "1",
+    "sql_password": "1",
+    "sql_host": "1",
+    "sql_port": "1",
+    "sql_database": "1"
 }
 
 

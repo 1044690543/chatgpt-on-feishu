@@ -1,0 +1,14 @@
+FROM python:3.10.16-slim
+
+WORKDIR /app
+
+COPY . /app
+
+RUN apt-get update && apt-get install -y vim && \
+    pip install --no-cache-dir -r requirements.txt
+
+CMD ["python", "/app/app.py"]
+
+# docker build -f Dockerfile.fast -t chatgpt_on_feishu:1.0 .
+# docker run -itd --name chatgpt_on_feishu -p 9891:9891 chatgpt_on_feishu:1.0
+# docker save -o chatgpt-on-feishu.tar chatgpt_on_feishu:1.0
