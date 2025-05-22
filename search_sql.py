@@ -72,6 +72,12 @@ def get_result(name_or_id: str):
                   f"分公司: {content[0]['subsidiary']}"
     reply.content = return_text
     print(return_text)
+    # 屏蔽用户列表
+    filter_user_list = ["金伊伊u"]
+    if content[0]['anchor_nickname'] in filter_user_list:
+        reply.content = f" "
+        print(f"用户 {content[0]['anchor_nickname']} 被屏蔽，返回空")
+        return reply
     return reply
 
 # if __name__ == "__main__":
